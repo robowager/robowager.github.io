@@ -1,0 +1,151 @@
+3:I[5613,[],""]
+5:I[1778,[],""]
+6:I[5250,["250","static/chunks/250-e6a6f086b85a6178.js","931","static/chunks/app/page-5ef23bef5d49f6f4.js"],""]
+4:["slug","hello-robot-vr","d"]
+0:["GLF-EP8pvyiQlkIVfuxHq",[[["",{"children":["posts",{"children":[["slug","hello-robot-vr","d"],{"children":["__PAGE__?{\"slug\":\"hello-robot-vr\"}",{}]}]}]},"$undefined","$undefined",true],["",{"children":["posts",{"children":[["slug","hello-robot-vr","d"],{"children":["__PAGE__",{},["$L1","$L2",null]]},["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children","posts","children","$4","children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","notFoundStyles":"$undefined","styles":null}]]},["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children","posts","children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","notFoundStyles":"$undefined","styles":null}]]},[null,["$","html",null,{"lang":"en","children":["$","body",null,{"children":[["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":"404"}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],"notFoundStyles":[],"styles":null}],["$","footer",null,{"children":["$","$L6",null,{"href":"/","children":"Home"}]}]]}]}],null]],[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/0d132565a6ef74ad.css","precedence":"next","crossOrigin":""}]],"$L7"]]]]
+8:T22f7,<h2>Introduction</h2>
+<p>Here's a robotics version of 'hello world' in a VR environment.</p>
+<p><img src="/hello-robot-vr/recording.gif" alt="recording"></p>
+<p>I'll describe how I set it up, but won't share any code. The approach was
+brittle and the tools are outdated. If I had to start afresh, the high-level
+approach would be to</p>
+<ul>
+<li>run the robotics application in ROS,</li>
+<li>run the VR environment as a Unity game, with which ROS would communicate, and</li>
+<li>let Unity handle the details of displaying to a headset.</li>
+</ul>
+<p><img src="/hello-robot-vr/1_high_level.png" alt="high-level approach"></p>
+<p>I only had a <a href="https://arvr.google.com/cardboard/">Google Cardboard</a> and a wired
+Xbox 360 controller. Getting a demo to work with them required a complicated
+setup, shown below. I think things would be simpler with better hardware. It
+was still a good learning experience, and I'll describe the role each component
+played.</p>
+<p><img src="/hello-robot-vr/5_overall.png" alt="overall system"></p>
+<p>I should clarify that I was only viewing and not controlling the robot via VR.</p>
+<h2>Components</h2>
+<h3>ROS</h3>
+<p>I assume some robot application of interest that exists in ROS. I used ROS1,
+but ROS2 is the way to go moving forward. It is common to run ROS in a
+container, and I used the <code>ros:melodic</code> base. I used the
+<a href="https://github.com/personalrobotics/aikido">AIKIDO</a> library as the robot
+environment, i.e. for creating a robot model from URDFs, computing forward
+kinematics, and so on. The robot was a UR10 with the
+<a href="https://github.com/ros-industrial/robot_movement_interface/tree/master/dependencies/ur_description">description</a>
+obtained from ros-industrial. I used the classic
+<a href="https://wiki.ros.org/joy">joy</a> ROS package to make use of my wired Xbox 360
+controller. To summarize, I had a ROS node that</p>
+<ul>
+<li>created a UR10 using robot assets and AIKIDO,</li>
+<li>listened to joystick commands by subscribing to a joy node,</li>
+<li>updated robot joint states based on joystick commands, and</li>
+<li>published robot joint states on a topic.</li>
+</ul>
+<p>The last step was important for the connection between ROS and Unity,
+described below. ROS already has a great viewer, RViz, and AIKIDO allows easy
+visualization of the robot in RViz. Some official ROS2 support for viewing RViz
+in a headset (like the archived
+<a href="https://github.com/ros-visualization/oculus_rviz_plugins">oculus_rviz_plugins</a>
+and <a href="https://github.com/AndreGilerson/rviz_vive">rviz_vive</a> projects) would
+make a project like mine unnecessary :)</p>
+<h3>Unity</h3>
+<p>I used Unity to build a simple game that could be viewed in VR. It had a model
+of the UR10 robot that was updated by joint states published by the ROS node.
+The endpoint of such an approach is to build a full robotics visualizer in
+Unity, which was attempted by the
+<a href="https://github.com/KIT-ISAS/iviz/tree/master/iviz">iviz</a> project.</p>
+<p>I found <a href="https://github.com/Unity-Technologies/Unity-Robotics-Hub">Unity Robotics
+Hub</a> very helpful for
+my tasks.</p>
+<ul>
+<li>I used <a href="https://github.com/Unity-Technologies/Unity-Robotics-Hub/blob/main/tutorials/pick_and_place/1_urdf.md">part
+1</a>
+of the pick-and-place tutorial to setup the robot in Unity.  The same URDFs and
+meshes used in the ROS node worked here.</li>
+<li>I followed
+<a href="https://github.com/Unity-Technologies/Unity-Robotics-Hub/tree/main/tutorials/ros_unity_integration">ros_unity_integration</a>
+to setup comms between ROS and Unity. The ROS side config was to clone the
+<a href="https://github.com/Unity-Technologies/ROS-TCP-Endpoint">ROS-TCP-Endpoint</a>
+package into the workspace, build it, and run the endpoint node. On the Unity side, the
+<a href="https://github.com/Unity-Technologies/ROS-TCP-Connector">ROS-TCP-Connector</a>
+had to be added to the game.</li>
+<li>I also had to generate the joint states message in Unity.</li>
+</ul>
+<p>The ROS-TCP plugin allows information to flow both ways, although I was only
+subscribing to messages from ROS in Unity. It could also be argued that for
+this simple demo, ROS could be eliminated by reading the wired controller
+inputs directly in Unity.</p>
+<p><img src="/hello-robot-vr/2_ros_tcp.png" alt="ROS-Unity communication"></p>
+<p>For VR support, I used the <a href="https://github.com/ValveSoftware/steamvr_unity_plugin">SteamVR Unity
+Plugin</a>.  It was easy to
+use, I just had to drop the <code>CameraRig</code> prefab into the scene.  I also liked
+that with Steam VR the same game could, in principle, work with different
+headsets.</p>
+<p><img src="/hello-robot-vr/3_unity_cardboard.png" alt="Unity-cardboard communication"></p>
+<h3>Cardboard viewer</h3>
+<p>I was using a Google Cardboard viewer with a Moto X4 Android phone. Connecting
+the Unity game to the smartphone was cumbersome and the least disciplined
+component in my system.</p>
+<p>I used <a href="https://www.trinusvirtualreality.com/trinus-cardboard/">Trinus Cardboard
+VR</a> to display the
+Unity game on the smartphone. On the Android end, I downloaded the Trinus CBVR
+Lite app.  On the PC end, I had so far been working on an Ubuntu 20.04 host.
+The Unity Hub and Editor worked well for me on Ubuntu. But the provided Trinus
+Cardboard VR PC server was for Windows. I did try the open source
+<a href="https://github.com/MyrikLD/LinusTrinus">LinusTrinus</a> for running a Trinus
+server in Linux, but it didn't work for me. I was forced to move to a Windows
+host.</p>
+<p><img src="/hello-robot-vr/4_unity_trinus_cardboard.png" alt="Unity-cardboard communication using Trinus"></p>
+<p>Using the Unity Editor on Ubuntu, I built the Unity game to run on Windows. I
+installed Docker on Windows and re-created the ROS image there. But I hit
+another roadblock when trying to access the wired controller in the ROS
+container. This was a <a href="https://github.com/microsoft/WSL/issues/2195">known
+issue</a> on Windows. Instead of
+investigating workarounds, I switched to running the ROS nodes in an Ubuntu VM
+using <a href="https://www.virtualbox.org/">VirtualBox</a>. This was an unsatisfying
+change, but I was close to the end. The VM ran reliably after a small amount of
+configuration to pass-through the Xbox controller, and setup network so that
+the ROS TCP node could communicate with the Unity game.</p>
+<p><img src="/hello-robot-vr/5_overall.png" alt="overall system"></p>
+<h2>Result</h2>
+<p>Once all components were setup and running, I could move the robot with the
+controller, and view the results on my smartphone and the Cardboard.</p>
+<p><img src="/hello-robot-vr/recording.gif" alt="recording"></p>
+<p>An aspect that could have used more cleanup was the launch of components. I
+ended up with a fairly long list of steps to follow to run the demo, starting
+with having the controlled plugged in, running processes in a specific order,
+checking various IPs to ensure that comms worked, etc.</p>
+<h2>Steps that didn't work</h2>
+<p>A list of other things that I tried that were not part of the final system.</p>
+<ul>
+<li>I tried running Unity Editor in a container, just for curiosity. I couldn't
+get it to work, and most of the guides online
+(<a href="https://johnaustin.io/articles/2020/running-unity-20201-in-docker">example</a>)
+were about running Unity in a headless mode for CI purposes. I didn't have prior
+experience with Unity and wanted to try out the Editor, so continued with a
+host install.</li>
+<li>I thought about running the Unity game on the phone. I was able to run the
+demo game from the Cardboard unity plugin
+<a href="https://developers.google.com/cardboard/develop/unity/quickstart">quickstart</a>.
+But Steam VR seemed like a better option.</li>
+<li>I could not get the wired Xbox controller to work if plugged into the
+smartphone, e.g. to play an Android game with controller support. In
+addition, Unity <a href="https://docs.unity3d.com/Packages/com.unity.inputsystem@1.0/manual/SupportedDevices.html">did not
+support</a>
+the Xbox 360 controller on Android.</li>
+<li>I could not get <a href="https://docs.unity3d.com/2020.3/Documentation/Manual/UnityRemote5.html">Unity
+Remote</a>
+to work when running the Unity Editor in Ubuntu. It may have had something to
+do with <code>adb</code> drivers.</li>
+</ul>
+<h2>Final thoughts</h2>
+<p>If I had time to work on one additional feature, it would be some form of
+control by passing information back along VR -> Unity -> ROS. I'd have to think
+of a convincing yet simple demo, e.g. using gesture to specify a desired
+end-effector position, then planning and executing a motion. Effective control
+with a gamepad and RViz already requires some thought, as in this
+<a href="https://www.youtube.com/watch?v=p_x-HRagLpo">video</a> that
+<a href="https://ros-planning.github.io/moveit_tutorials/doc/joystick_control_teleoperation/joystick_control_teleoperation_tutorial.html">demos</a>
+joystick control in MoveIt.</p>
+2:["$","article",null,{"className":"post","children":[["$","h1",null,{"children":"Hello Robot in VR"}],["$","p",null,{"children":"2021-12-19"}],["$","div",null,{"dangerouslySetInnerHTML":{"__html":"$8"}}]]}]
+7:[["$","meta","0",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","1",{"charSet":"utf-8"}],["$","title","2",{"children":"Hello Robot in VR"}],["$","meta","3",{"name":"description","content":"Notes of an armchair roboticist"}]]
+1:null
