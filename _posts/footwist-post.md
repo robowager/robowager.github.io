@@ -33,4 +33,4 @@ teacher.  The libraries I used were:
 Visualizing the screw that achieves a transform helps with intuition, but it's
 also fun to just play around with values.
 
-![move axes](/footwist/move_axes.gif)
+![move axes](/footwist-post/move_axes.gif)
