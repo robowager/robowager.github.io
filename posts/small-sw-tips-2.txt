@@ -1,0 +1,383 @@
+3:I[5613,[],""]
+5:I[1778,[],""]
+6:I[5250,["250","static/chunks/250-e6a6f086b85a6178.js","931","static/chunks/app/page-5ef23bef5d49f6f4.js"],""]
+4:["slug","small-sw-tips-2","d"]
+0:["3QaHMm55SIjk_hJY0H6Bb",[[["",{"children":["posts",{"children":[["slug","small-sw-tips-2","d"],{"children":["__PAGE__?{\"slug\":\"small-sw-tips-2\"}",{}]}]}]},"$undefined","$undefined",true],["",{"children":["posts",{"children":[["slug","small-sw-tips-2","d"],{"children":["__PAGE__",{},["$L1","$L2",null]]},["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children","posts","children","$4","children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","notFoundStyles":"$undefined","styles":null}]]},["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children","posts","children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","notFoundStyles":"$undefined","styles":null}]]},[null,["$","html",null,{"lang":"en","children":["$","body",null,{"children":[["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children"],"loading":"$undefined","loadingStyles":"$undefined","loadingScripts":"$undefined","hasLoading":false,"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":"404"}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],"notFoundStyles":[],"styles":null}],["$","footer",null,{"children":["$","$L6",null,{"href":"/","children":"Home"}]}]]}]}],null]],[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/0d132565a6ef74ad.css","precedence":"next","crossOrigin":""}]],"$L7"]]]]
+8:T4297,<p>Some small software tips, with a bias towards python and robotics. They are
+mostly style suggestions for maintainability of code, and not solutions to
+problems. These are collected from personal experience, but I don't take credit
+for them. I learned by working with engineers better than myself. When I need an
+example application, I will consider software for an aerial drone that performs
+deliveries.</p>
+<h1>Contents</h1>
+<ul>
+<li><a href="#exceptions">Exceptions</a>
+<ul>
+<li><a href="#adding-exceptions">Adding exceptions</a></li>
+<li><a href="#catching-exceptions">Catching exceptions</a></li>
+<li><a href="#exception-trail">Exception trail</a></li>
+</ul>
+</li>
+<li><a href="#levels-of-configuration">Levels of configuration</a></li>
+<li><a href="#logging">Logging</a></li>
+<li><a href="#documentation">Documentation</a></li>
+<li><a href="#removing-code">Removing code</a></li>
+<li><a href="#code-review">Code review</a></li>
+</ul>
+<h1>Exceptions</h1>
+<p>Handling non-happy paths can take a lot of effort. Exception handling can be
+like the underworld of software: not immediately visible but pervasive (by
+making the comparison, I don't mean that it should be messy). For software that
+needs to be robust, every line might need to be scrutinized, and every feature
+addition can raise new errors.</p>
+<h2>Adding exceptions</h2>
+<p>When raising a new exception, spare a thought for calling code that might need
+to handle it. Add code to catch the exception, or just bring it to the notice of
+other engineers.</p>
+<p>Raise a specific exception instead of generic ones that might have more than one
+cause. For example, suppose our robot has multiple sensors, and the <code>Perception</code>
+class stores a dictionary mapping sensor names to objects.</p>
+<pre><code>class Perception:
+    def get_sensor_by_name(self, name):
+        return self._sensors[name]
+</code></pre>
+<p>If called with a name that doesn't exist, we will likely get the built-in
+<code>KeyError</code>. In a large codebase, where the <code>KeyError</code> could have more than one
+source, it might be more informative to raise a custom exception.</p>
+<pre><code>class UnknownSensor(Exception):
+    pass
+
+class Perception:
+    def get_sensor_by_name(self, name):
+        if name not in self._sensors:
+            raise UnknownSensor(f"No sensor named {name}")
+</code></pre>
+<p>The tip also applies to external modules. Suppose we are using a communication
+library which defines a <code>ConnectionError</code>. Defining sensor-specific errors can
+help calling code identify which sensor is misbehaving.</p>
+<p>For code that is a component of larger software,</p>
+<ul>
+<li>start with a single exception,</li>
+<li>refine into variants as needed,</li>
+<li>define variants as children of a base exception.</li>
+</ul>
+<p>For example</p>
+<pre><code>class SensorException(Exception):
+    """ Base class for sensor exceptions. """
+
+class InvalidSensorRequest(SensorException):
+    """ Request for data was not well-formed. """
+
+class SensorCrashed(SensorException):
+    """ Could not return data because sensor died. """
+</code></pre>
+<p>Refine into variants when error handling is different.</p>
+<pre><code>def construct_map():
+    try:
+        get_sensor_data()
+    except InvalidSensorRequest:
+        # could fix request and retry
+    except SensorCrashed:
+        # could wait for sensor to restart
+</code></pre>
+<p>Catching the base exception is useful for calls that don't care about variants.</p>
+<pre><code>def execute_hairpin_turn():
+    try:
+        get_sensor_data()
+    except SensorException:
+        # abort motion and safely come to a stop
+</code></pre>
+<h2>Catching exceptions</h2>
+<p>The first tip is to keep code readable. It is sad to see a block of well-written
+code summarily shoved inside a <code>try</code>. It is also hard to read nested
+<code>try</code>-<code>except</code> blocks like below.</p>
+<pre><code># try within a try
+try:
+    try:
+         ...
+
+# try within an except
+try:
+    ...
+except:
+    try:
+        ...
+</code></pre>
+<p>Stack traces are very useful, but also tiring to wade through. Log a stack trace
+from an exception only once to minimize noise.</p>
+<p>Where should exceptions be caught? I will sketch out two patterns, but leave out
+a discussion of how to choose one. The first option is to catch an exception
+closest to a statement. This makes it clear to readers where the error can be
+raised, and surrounding lines are saved an indent level. In the snippet below,
+the <code>except SensorException</code> only wraps the call that can raise the exception.</p>
+<pre><code>def execute_docking():
+    communicate_with_platform()
+    fly_above_platform()
+    try:
+        detect_platform()
+    except SensorException:
+        ...
+    descend_to_platform()
+</code></pre>
+<p>The second is higher up in the stack. This can save lines of code if multiple
+sub-calls raise the same exception which would be handled the same way.</p>
+<pre><code>def finish_mission():
+    try:
+        execute_docking()
+    except TrajectoryFailedToComplete:
+        # One except instead of two identical try-except blocks around:
+        # - fly_above_platform
+        # - descend_to_platform
+        ...
+</code></pre>
+<p>In the limit, a majority of exceptions are caught high up in the call stack.</p>
+<pre><code>def perform_mission():
+    while continue_mission:
+        try:
+            attempt_mission()
+        except SensorException:
+            ...
+        except TrajectoryFailedToComplete:
+            ...
+
+def attempt_mission():
+    prepare_mission()
+    perform_delivery()
+    finish_mission()
+</code></pre>
+<p>The advantages are a separation of main logic from error handling, and a
+convenient catalog of errors. Note the ladder of <code>except</code> blocks. A possible bug
+is that an earlier <code>except</code> aliases a later one.</p>
+<pre><code>try:
+    ...
+except Exception:
+    ...
+except ValueError:
+    # will never be reached
+</code></pre>
+<p>If recovery behavior for a particular exception is involved, it can be spun out
+into its own function (which can be unit tested). This can help avoid <code>try</code>
+statements nested inside <code>except</code> blocks, which can occur when exception
+handling can itself encounter an exception.</p>
+<pre><code>def construct_map():
+    try:
+        get_sensor_data()
+    except SensorCrash:
+        sensor_crash_recovery()
+
+def sensor_crash_recovery():
+   # Check that this call is valid, by examining the error type:
+   # - either pass in the error,
+   # - or ensure an error stack is active.
+
+    try:
+        wait_for_sensor()
+    except TimeoutError:
+        # stop waiting and give up
+</code></pre>
+<h2>Exception trail</h2>
+<p>In software with many layers, the journey of an exception can be arduous,
+traveling across processes and components. Suppose a user requests a drone
+delivery, but the mission fails because of an unrecoverable sensor crash. The
+path of the exception might be</p>
+<ul>
+<li>sensor driver,</li>
+<li>perception software,</li>
+<li>mission software,</li>
+<li>scheduling software,</li>
+<li>error message to user.</li>
+</ul>
+<p>The exception might even change format along this trail, such as a conversion to
+a string code. Avoid changing the name, e.g. <code>SensorCrash</code> to
+<code>UNRECOVERABLE_SENSOR_FAILURE</code>.</p>
+<p>Alongside a software trail, the exception might have an audience trail:</p>
+<ul>
+<li>perception engineers,</li>
+<li>other software engineers,</li>
+<li>live support engineers,</li>
+<li>the final user.</li>
+</ul>
+<p>Error messages associated with an exception are important and depend on the
+audience. A perception engineer might want gory details of the crash, a support
+engineer would benefit from suggestions to resolve the issue, and the user only
+needs a brief and clear message.</p>
+<p>At earlier levels in software, we might like refined exceptions for fine-grained
+handling. But further along the audience trail, we should seek to suppress or
+consolidate exceptions, and simplify error messages.</p>
+<h1>Levels of configuration</h1>
+<p>Software might need to support numerous levels of configuration. Consider a
+parameter like <code>minimum_landing_area</code> used in <code>find_landing_zone</code>. To start
+with, it might be a constant defined at the top of a file. This allows it to be
+imported and used in other code (say in analysis).</p>
+<pre><code># Prefer named constants to magic numbers, which are
+# undocumented numbers floating around in code.
+MINIMUM_LANDING_AREA = 1.5
+
+def find_landing_zone():
+    # make use of MINIMUM_LANDING_AREA
+</code></pre>
+<p>Class-level constants work too. The parameter can then be made an argument,
+allowing callers to change the value.</p>
+<pre><code>MINIMUM_LANDING_AREA = 1.5
+
+def find_landing_zone(minimum_landing_area=None):
+    if minimum_landing_area is None:
+        minimum_landing_area = MINIMUM_LANDING_AREA
+    # make use of minimum_landing_area
+</code></pre>
+<p>Assume that a <code>Perception</code> object calls the
+function, and stores the parameter value to use.</p>
+<pre><code>class Perception:
+    def __init__(self, minimum_landing_area=None):
+        self._minimum_landing_area = minimum_landing_area
+
+    def landing():
+        find_landing_zone(minimum_landing_area=self._minimum_landing_area)
+</code></pre>
+<p>A next level of configuration is to store values in a configuration file, to be
+read during object creation. A use case is different hardware: we might have a
+smaller drone, and the configuration file for it could specify a smaller landing
+area.</p>
+<pre><code>def create_perception(config):
+    """
+    :param dict config: configuration read from a file
+    """
+    return Perception(
+        minimum_landing_area=config.get("minimum_landing_area")
+    )
+</code></pre>
+<p>Further, we can allow commandline args to override a configuration file. A use
+case is for test engineers to temporarily modify a value.</p>
+<pre><code>def create_perception(cmdline_args, config):
+    """
+    :param dict cmdline_args: commandline args
+    :param dict config: configuration read from a file
+    """
+    if "minimum_landing_area" in cmdline_args:
+        minimum_landing_area = cmdline_args["minimum_landing_area"]
+    elif "minimum_landing_area" in config:
+        minimum_landing_area = config["minimum_landing_area"]
+    else:
+        minimum_landing_area = None
+    return Perception(minimum_landing_area=minimum_landing_area)
+</code></pre>
+<p>Finally, the parameter may be modified online by higher-level software. Assume
+that a scheduling software hands out missions to drones. The parameter value it
+assigns can have highest priority.</p>
+<pre><code>@dataclass
+class Mission:
+    minimum_landing_area: Optional[float] = None
+
+class Perception:
+    def landing(self, mission):
+        find_landing_zone(
+            minimum_landing_area=(
+                mission.minimum_landing_area or self._minimum_landing_area
+            )
+        )
+</code></pre>
+<p>The scheduler has a broader worldview. It might detect that weather conditions
+are particularly windy in an area, and override the parameter to use a larger,
+conservative value.</p>
+<h1>Logging</h1>
+<p>Logging decisions made is crucial for debugging. As an example, consider the
+following drone docking code, where we might want to log details of each step.</p>
+<pre><code>def execute_docking():
+    communicate_with_platform()
+    fly_above_platform()
+    detect_platform()
+    descend_to_platform()
+</code></pre>
+<p>The logging approach should be robust to errors that can be raised. For example,
+if a <code>SensorException</code> occurs with <code>detect_platform</code>, we should still log
+partial progress (the success of prior steps), and possibly the sensor exception.</p>
+<p>The logging approach should maintain readability, e.g. avoid introducing
+numerous <code>try</code> blocks just to aid logging.</p>
+<p>Logging operations should not affect live software. They should be fast. What
+about handling logging errors, such as database or connection issues? Consider
+two options.</p>
+<ul>
+<li>We can interrupt or fail the mission, but preserve logs as far as possible,
+including issues with logging itself.</li>
+<li>We can complete the mission successfully, but lose logs.</li>
+</ul>
+<p>The answer could depend on the stage of development (adding yet more
+configuration complexity).</p>
+<ul>
+<li>We might choose option 1 early on, when we want to expose and fix all errors.</li>
+<li>We might choose option 2 after deployment, when completing missions is higher
+priority.</li>
+</ul>
+<p>Prefer logging by addition-only, rather than modifying prior logs. For example,</p>
+<ul>
+<li>suppose there was an array of platforms,</li>
+<li>a drone docked to an invalid one,</li>
+<li>which it realized, and then re-docked to a valid platform.</li>
+</ul>
+<p>Instead of maintaining a single log for the docking operation, which contains
+the result of the final successful maneuver, prefer maintaining logs for each
+docking attempt, including failed ones. Not only is this more informative, it is
+simpler than looking up the single log and determining how to correctly update it.</p>
+<p>Logging by publishing events to a stream can address these requirements, at the
+cost of being potentially harder to implement, than say logging directly to a
+database.</p>
+<h1>Documentation</h1>
+<p>When adding code for a new algorithm, commit a small script showing how to run
+it. This can be as effective documentation as a separate how-to wiki page.</p>
+<p>Unit tests are a great kind of documentation and tutorial of features,
+especially if they build up from simple to complex tests.</p>
+<p>Source code documentation should be required for 'incantations', the kind of
+magic that can show up when using libraries like <code>re</code> (regex) or <code>pandas</code>. It is
+fine if someone wants to compress a lot of cleverness into a single line, but it
+should at least be well-explained.</p>
+<h1>Removing code</h1>
+<p>Dead code creeps in over time when multiple engineers contribute to a large
+file. Small examples of such code that can be removed are:</p>
+<ul>
+<li>unused <code>import</code>s,</li>
+<li>unused variables, and arguments,</li>
+<li><code>except</code> blocks for unused errors.</li>
+</ul>
+<p>More insidious are lines that do not affect correctness, but make code
+inefficient, e.g. unnecessary locks, database saves, or state
+synchronization. It is easy for a developer to add the use of a lock with the
+justification that it can't possibly hurt. But allow many of these to
+accumulate, and it can become difficult to reason about which of them are
+minimal for correct operation.</p>
+<p>If we remove the use of a feature from an application, we can still keep around
+the feature's source code for reference. As an example, suppose that an earlier
+version of the drone used a bluetooth sensor to detect if the docking platform
+was nearby. Suppose that the sensor was then removed because it was found to be
+redundant. We could remove the <code>bluetooth_sensor</code> instance variable from our
+<code>Perception</code> class, while keeping around the <code>perception/bluetooth.py</code> file.</p>
+<p>There might be good reasons to remove the source code as well though. The unused
+source code can be a distraction by showing up in code search tools. Deleting it
+can free up valuable names/ namespaces, which can then be occupied by more
+recent code. We can always add a tag to the repository for the option of
+checking out old code.</p>
+<h1>Code review</h1>
+<p>I loosely picture code that needs to be reviewed as a tree: something that
+needs to be maintained, grown, and pruned.</p>
+<p><img src="/small-sw-tips-2/tree.png" alt="tree"></p>
+<p>Engineers working on some software might not have the full picture. They might
+zoom into their area of interest and make changes that get the job done, but
+don't fit overall style. A task of code review is to make such changes
+consistent with existing code.</p>
+<p><img src="/small-sw-tips-2/tree_consistency.png" alt="tree consistency"></p>
+<p>Consistency can be a valuable property of code that many developers contribute
+to. In our drone example, perception engineers might have figured out a good
+data access pattern to avoid race conditions. This can be followed when writing
+software for a new sensor, or more broadly in the codebase. Or we might note
+that drone docking and take-off involve similar operations, and refactor code so
+that they appear symmetric.</p>
+<p><img src="/small-sw-tips-2/tree_symmetry.png" alt="tree symmetry"></p>
+<p>Software can accumulate numerous features over time. Having an overall picture
+helps avoid clutter by adding features at an appropriate depth in code, hidden
+from the main flow of logic. For example, we might add a machine learning
+component to add semantic labels to a map. Instead of introducing a
+<code>semantic_labeler</code> object everywhere in the mission code, we can choose to push
+it down inside a <code>construct_map()</code> function call.</p>
+<p><img src="/small-sw-tips-2/tree_feature.png" alt="tree feature"></p>
+2:["$","article",null,{"className":"post","children":[["$","h1",null,{"children":"Small software tips, part 2"}],["$","p",null,{"children":"2024-08-10"}],["$","div",null,{"dangerouslySetInnerHTML":{"__html":"$8"}}]]}]
+7:[["$","meta","0",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","1",{"charSet":"utf-8"}],["$","title","2",{"children":"Small software tips, part 2"}],["$","meta","3",{"name":"description","content":"Notes of an armchair roboticist"}]]
+1:null
