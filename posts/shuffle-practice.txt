@@ -1,0 +1,126 @@
+3:I[4707,[],""]
+5:I[6423,[],""]
+6:I[2972,["972","static/chunks/972-fe008c56cc430895.js","931","static/chunks/app/page-f399e1950cf84cbb.js"],""]
+4:["slug","shuffle-practice","d"]
+0:["TMHTJ0SeWJzJwMLztzrMA",[[["",{"children":["posts",{"children":[["slug","shuffle-practice","d"],{"children":["__PAGE__?{\"slug\":\"shuffle-practice\"}",{}]}]}]},"$undefined","$undefined",true],["",{"children":["posts",{"children":[["slug","shuffle-practice","d"],{"children":["__PAGE__",{},[["$L1","$L2",null],null],null]},[null,["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children","posts","children","$4","children"],"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","notFoundStyles":"$undefined"}]],null]},[null,["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children","posts","children"],"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","notFoundStyles":"$undefined"}]],null]},[[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/css/0d132565a6ef74ad.css","precedence":"next","crossOrigin":"$undefined"}]],["$","html",null,{"lang":"en","children":["$","body",null,{"children":[["$","$L3",null,{"parallelRouterKey":"children","segmentPath":["children"],"error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L5",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","title",null,{"children":"404: This page could not be found."}],["$","div",null,{"style":{"fontFamily":"system-ui,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\"","height":"100vh","textAlign":"center","display":"flex","flexDirection":"column","alignItems":"center","justifyContent":"center"},"children":["$","div",null,{"children":[["$","style",null,{"dangerouslySetInnerHTML":{"__html":"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}"}}],["$","h1",null,{"className":"next-error-h1","style":{"display":"inline-block","margin":"0 20px 0 0","padding":"0 23px 0 0","fontSize":24,"fontWeight":500,"verticalAlign":"top","lineHeight":"49px"},"children":"404"}],["$","div",null,{"style":{"display":"inline-block"},"children":["$","h2",null,{"style":{"fontSize":14,"fontWeight":400,"lineHeight":"49px","margin":0},"children":"This page could not be found."}]}]]}]}]],"notFoundStyles":[]}],["$","footer",null,{"children":["$","$L6",null,{"href":"/","children":"Home"}]}]]}]}]],null],null],["$L7",null]]]]
+8:T1d49,<p>I'm not good at shuffling a deck of playing cards, and wanted to practice the
+riffle shuffle. There's a result that it takes 7 riffles to randomize a deck
+(<a href="https://en.wikipedia.org/wiki/Shuffling#Riffle">wikipedia</a>,
+<a href="https://www.youtube.com/watch?v=AxJubaijQbI">youtube</a>).  To see the full
+effect of a shuffle, we need to know the order of cards in a deck before and
+after. I have some tools to annotate a deck and inspect shuffles in the
+<a href="https://github.com/robowager/shuffle_practice">shuffle_practice</a> repo.  The
+repo has example
+<a href="https://github.com/robowager/shuffle_practice/tree/main/data">data</a> which I
+will refer to in this post.</p>
+<h1>Deck image</h1>
+<p>I started with capturing an image of all 52 cards in a deck. I laid them out on
+the floor against a dark background to make further image processing tasks
+easier.</p>
+<p><img src="/shuffle-practice/20251008_01.jpg" alt="20251008_01"></p>
+<p>These are some conventions I used for ordering a deck.</p>
+<ul>
+<li>With cards stacked face-down, the bottom-most card is the first, and the
+top-most card is the last.</li>
+<li>In a deck image, the order of cards is left-right, top-down. The first card is
+the top-left, and last card is bottom-right.</li>
+</ul>
+<p><img src="/shuffle-practice/card_order.png" alt="card_order"></p>
+<p>I only performed riffles, and captured a deck image after every single riffle.
+In the <a href="https://github.com/robowager/shuffle_practice/tree/main/data/capture">example
+sequence</a>
+included with the repo, there are 8 images of decks, for a total of 7 riffles
+between the first and last deck. The image above is of the <a href="https://github.com/robowager/shuffle_practice/blob/main/data/capture/20251008_01.jpg">first
+deck</a>,
+before any shuffles.</p>
+<h1>Segmentation</h1>
+<p>The next task was to segment a deck image into individual cards. I used
+<a href="https://github.com/facebookresearch/segment-anything">segment-anything</a> for
+this purpose. I worked on a cpu-only machine, so I used the smallest model
+along with a scaled-down image. The model segmented cards very well, but could
+also generate spurious segments.</p>
+<p><img src="/shuffle-practice/all_masks.jpg" alt="all_masks"></p>
+<p>I got rid of unwanted segments with some simple filtering (such as expected
+card area and aspect ratio). This worked because I used a fixed set of playing
+cards, and tried to capture consistent deck images. I often captured a couple
+of images of the same deck, and chose one on which segmentation worked.</p>
+<p><img src="/shuffle-practice/segmentation.jpg" alt="segmentation"></p>
+<h1>Classification</h1>
+<p>Once I had card segments, I used
+<a href="https://github.com/mlfoundations/open_clip">open_clip</a> for labeling the cards.
+Based on some
+<a href="https://github.com/robowager/shuffle_practice/blob/main/data/clip_eval_results.csv">evaluation</a>
+(see the final <code>deck</code> accuracy column in the linked csv), the (SigLIP, webli)
+models stood out as having very good performance, without any prompt
+engineering.  Perhaps the webli dataset includes playing cards, but I didn't
+confirm.</p>
+<p>Predictions were correct for cards that were clearly visible, such as the <code>3h</code>
+<a href="https://github.com/robowager/shuffle_practice/blob/main/data/segmentation/20251008_01/19.jpg">card</a>
+shown below. I took deck images on a phone, and cards near the edges were
+consistently blurry. The SigLIP model I used often did well labeling even
+these, such as the <code>6h</code>
+<a href="https://github.com/robowager/shuffle_practice/blob/main/data/segmentation/20251008_01/00.jpg">card</a>.</p>
+<p><img src="/shuffle-practice/classification_examples.jpg" alt="classification_examples"></p>
+<p>I used the <a href="https://github.com/robowager/shuffle_practice/tree/main/data/classification">classification
+output</a>
+as a seed to manually
+<a href="https://github.com/robowager/shuffle_practice/tree/main/data/annotation">annotate</a>
+the decks.  Classification was pretty good (average accuracy 97% on the 8
+example images) which simplified this step.</p>
+<h1>Permutation stats</h1>
+<p>With the <a href="https://github.com/robowager/shuffle_practice/tree/main/data/annotation">annotation
+files</a>
+in place, I could get an informal picture of shuffle quality. My example
+sequence of shuffles was far from perfect.</p>
+<p>I found looking at permutation matrices to be helpful. A permutation matrix is
+a matrix of zeros and ones that maps a source sequence to a permutation. In all
+the matrices shown, the source was the starting deck (<code>20251008_01</code>). The three
+images below are the permutation matrix after 1, 2, and 3 riffles.  In other
+words, they map deck 1 to 2, 3, and 4.</p>
+<p><img src="/shuffle-practice/permutation_matrix_progression.png" alt="permutation_matrix_progression"></p>
+<ul>
+<li>After 1 riffle, the matrix has 2 clear diagonals, corresponding to
+the cards in the left and right hand. It shows that I tended to drop
+groups of 3-4 cards at once.</li>
+<li>After 2 riffles, the matrix interestingly has 4 diagonals.</li>
+<li>After 3 riffles, the pattern of doubling diagonals is less convincing.</li>
+</ul>
+<p>Shuffle 6, between decks 6 and 7, was so bad that it isn't even a riffle. I
+tried to follow the riffle with a bridge, but fumbled, and undid most of the
+riffle. Perhaps my sequence of 7 riffles is effectively only 6.</p>
+<p><img src="/shuffle-practice/bad_shuffle.png" alt="bad_shuffle"></p>
+<p>The overall permutation matrix, between decks 1 and 8, looks pretty scattered.</p>
+<p><img src="/shuffle-practice/permutation_matrix_overall.png" alt="permutation_matrix_overall"></p>
+<p>In a permuted sequence, a pair of elements is inverted if their order is
+flipped, relative to the source sequence. For a deck of 52 cards, the expected
+number of inversions for a uniform random permutation is <code>52 * 51 / 4 = 663</code>.
+The number of inversions in my sequence of shuffles (relative to the starting
+deck) is below.</p>
+<pre><code>281, 452, 583, 618, 696, 740, 714
+</code></pre>
+<p>I don't have anything as principled as confidence intervals, but <code>714</code> seems
+far enough from <code>663</code> to suggest that my riffle shuffle needed more practice.</p>
+<h1>Conclusion</h1>
+<p>At the start of the project, I thought I would learn about random permutation
+statistics. Instead, I spent time working with zero-shot models for
+segmentation and classification, which to their credit worked very well.</p>
+<p>The limiting factor for more statistics was data collection effort.  In the
+final state of my code and workflow, it took me more than a couple of hours to
+capture, annotate, and inspect a sequence of 7 riffles, or 8 decks. I didn't
+have enough data instances to look into questions like the following.</p>
+<ul>
+<li>A hypothesis test for uniform random shuffles, including a consideration of
+alternatives and error rates. The wikipedia page on <a href="https://en.wikipedia.org/wiki/Random_permutation_statistics">Random permutation
+statistics</a> is a
+starting point.</li>
+<li>Correlation statistics between successive shuffles, which
+are not independent samples from a distribution.</li>
+<li>Exploring whether 6 riffles is enough, another result mentioned on the
+<a href="https://en.wikipedia.org/wiki/Shuffling#Riffle">wikipedia entry</a> on riffle
+shuffles.</li>
+</ul>
+<p>I concluded this project once it became more fun, and practice, to shuffle in
+service of an actual game of cards.</p>
+2:["$","article",null,{"className":"post","children":[["$","h1",null,{"children":"Shuffle practice"}],["$","p",null,{"children":"2026-01-05"}],["$","div",null,{"dangerouslySetInnerHTML":{"__html":"$8"}}]]}]
+7:[["$","meta","0",{"name":"viewport","content":"width=device-width, initial-scale=1"}],["$","meta","1",{"charSet":"utf-8"}],["$","title","2",{"children":"Shuffle practice"}],["$","meta","3",{"name":"description","content":"Notes of an armchair roboticist"}]]
+1:null
