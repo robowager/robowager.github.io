@@ -106,7 +106,8 @@ riffle. Perhaps my sequence of 7 riffles is effectively only 6.
 
 ![bad_shuffle](/shuffle-practice/bad_shuffle.png)
 
-The overall permutation matrix, between decks 1 and 8, looks pretty scattered.
+The overall permutation matrix, between decks 1 and 8, looks pretty scattered,
+although a diagonal bias possibly still remains.
 
 ![permutation_matrix_overall](/shuffle-practice/permutation_matrix_overall.png)
 
